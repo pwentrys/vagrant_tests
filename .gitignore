@@ -1,12 +1,12 @@
 */keys/private/*
 */keys/public/*
 */.vagrant
-*/.vagrant/*
 configuration.py
 credentials.py
-*/Vagrantignore
+VagrantfileIgnore
 */.git/*
 */.git
 *.box
 .idea
-.log
+*.log
+*.json
