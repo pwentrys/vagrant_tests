@@ -1,0 +1,9 @@
+*/keys/private/*
+*/keys/public/*
+*/.vagrant
+*/.vagrant/*
+configuration.py
+credentials.py
+*/Vagrantignore
+*/.git/*
+*/.git
