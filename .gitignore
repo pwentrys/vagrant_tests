@@ -9,3 +9,4 @@ credentials.py
 */.git
 *.box
 .idea
+.log
