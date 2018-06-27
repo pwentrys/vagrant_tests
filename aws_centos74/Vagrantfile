@@ -1,0 +1,41 @@
+# -*- mode: ruby -*-
+# vi: set ft=ruby :
+#require 'etc'
+
+# All Vagrant configuration is done below. The "2" in Vagrant.configure
+# configures the configuration version (we support older styles for
+# backwards compatibility). Please don't change it unless you know what
+# you're doing.
+Vagrant.configure("2") do |config|
+  AWS_ACCESS_KEY_ID = "AWS_ACCESS_KEY_ID"
+  AWS_SECRECT_ACCESS_KEY = "AWS_SECRECT_ACCESS_KEY"
+  KEYPAIR_NAME = "KEYPAIR_NAME"
+  ELASTIC_URL = "ELASTIC_URL"
+  PRIVATE_URL = "PRIVATE_URL"
+  KEY_PRIVATE_LOCATION = "../keys/private/#{KEYPAIR_NAME}.pem"
+  KEY_PUBLIC_LOCATION = "../keys/public/#{KEYPAIR_NAME}"
+
+  config.vm.box = "aws"
+
+  # AWS Image
+  config.vm.provider :aws do |aws, override|
+    node_name = 'centos74-docker-flask-python36'
+    aws.access_key_id = AWS_ACCESS_KEY
+    aws.secret_access_key = "AWS_SECRECT_ACCESS_KEY"
+    aws.keypair_name = KEYPAIR_NAME
+
+    aws.ami = "ami-9887c6e7"
+    aws.instance_type = "t2.micro"
+    aws.elastic_ip = ELASTIC_IP
+    aws.terminate_on_shutdown = "false"
+    aws.security_groups = ["main"]
+
+    # Overrides
+    override.vm.hostname = node_name
+    override.ssh.username = "centos"
+    override.ssh.private_key_path = KEY_PRIVATE_LOCATION
+
+    override.vm.provision "shell",
+      inline: "echo Box #{node_name} is Online."
+  end
+end
