@@ -1,0 +1,38 @@
+# -*- mode: ruby -*-
+# vi: set ft=ruby :
+
+# Force UTF8
+ENV["LC_ALL"] = "en_US.UTF-8"
+
+# All Vagrant configuration is done below. The "2" in Vagrant.configure
+# configures the configuration version (we support older styles for
+# backwards compatibility). Please don't change it unless you know what
+# you're doing.
+Vagrant.configure("2") do |config|
+  config.vm.box = "CentosBox/Centos-7-v7.4-Minimal-CLI"
+  config.vm.box_version = "17.11.24"
+  (1..19).each do |i|
+    config.vm.define "node-#{i}" do |node|
+      node.vm.provider "virtualbox" do |vb|
+        memory_val = "#{i}".to_i * 1024
+        vb.memory = memory_val.to_s
+        vb.cpus = "#{i}".to_i
+      end
+      node.vm.network "public_network", 
+        ip: "192.168.0.20#{i}"
+      node.vm.provision "shell",
+        inline: "echo hello from node #{i}"
+      node.vm.provision "shell",
+        inline: <<-SHELL 
+          yum update -q
+          yum upgrade -y -q
+          yum install -y -q wget
+          wget dl.fedoraproject.org/pub/epel/7/x86_64/Packages/e/epel-release-7-11.noarch.rpm
+          rpm -ihv epel-release-7-11.noarch.rpm
+          rm -rf epel-release-7-11.noarch.rpm
+          yum update -q
+          yum install htop -y -q
+      SHELL
+    end
+  end
+end
