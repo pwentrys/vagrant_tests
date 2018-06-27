@@ -1,0 +1,48 @@
+# -*- mode: ruby -*-
+# vi: set ft=ruby :
+
+# All Vagrant configuration is done below. The "2" in Vagrant.configure
+# configures the configuration version (we support older styles for
+# backwards compatibility). Please don't change it unless you know what
+# you're doing.
+Vagrant.configure("2") do |config|
+  config.vm.box = 'centos74_updated__20180620'
+  node_name = 'centos74-docker-gitlab'
+  config.vm.hostname = node_name
+  config.vm.network "public_network", ip: '192.168.0.251'
+  config.vm.synced_folder "../data/docker_images/Gitlab", "/synced"
+  config.vm.provider "virtualbox" do |vb|
+    vb.cpus = 4
+    vb.memory = 16384
+
+    vb.name = node_name
+    vb.gui = false
+  end
+  config.vm.provision "shell",
+    inline: "echo Box #{node_name} is Online."
+  config.vm.provision "shell",
+    inline: <<-SHELL
+      yum update -q
+      yum upgrade -y -q
+      yum install -y -q yum-utils device-mapper-persistent-data lvm2
+      echo Adding Docker Repo
+      yum-config-manager --add-repo https://download.docker.com/linux/centos/docker-ce.repo
+      yum update -q
+      echo Installing Docker
+      yum install -y -q docker-ce
+      echo Installed Docker
+      echo Starting Docker
+      systemctl start docker
+      echo Started Docker
+      echo Cleaning Cache
+      yum clean -q all
+      rm -rf /var/cache/yum
+      echo Cleaned Cache
+      cd /synced
+      echo Pulling Gitlab Image
+      docker pull gitlab/gitlab-ce:latest
+      echo Pulled Gitlab Image
+      docker run --detach --hostname gitlab.blasto.io --publish 443:443 --publish 80:80 --publish 2022:22 --name gitlab --restart always --volume /srv/gitlab/config:/etc/gitlab --volume /srv/gitlab/logs:/var/log/gitlab --volume /srv/gitlab/data:/var/opt/gitlab gitlab/gitlab-ce:latest
+      echo Gitlab Image Running
+  SHELL
+end
