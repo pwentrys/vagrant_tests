@@ -1,0 +1,52 @@
+# -*- mode: ruby -*-
+# vi: set ft=ruby :
+
+# Force UTF-8
+ENV["LC_ALL"] = "en_US.UTF-8"
+
+# All Vagrant configuration is done below. The "2" in Vagrant.configure
+# configures the configuration version (we support older styles for
+# backwards compatibility). Please don't change it unless you know what
+# you're doing.
+Vagrant.configure("2") do |config|
+  # Official CentOS 7.4 Image
+  config.vm.box = 'centos74_updated__20180620'
+  node_name = 'centos74-docker-gitlab'
+  config.vm.hostname = node_name
+  config.vm.network "public_network", ip: '192.168.0.251'
+  config.vm.synced_folder "../data/docker_images/Gitlab", "/synced"
+
+  box_name = "centos74-docker-import"
+  # Fixes error when booting from this as base image.
+  config.ssh.insert_key = false
+
+  # Auto-set hostname
+  config.vm.hostname = box_name
+  
+  config.vm.provider "virtualbox" do |vb|
+    vb.name =  box_name
+    vb.gui = false
+
+    vb.cpus = 4
+    vb.memory = 4096
+  end
+
+  # Run updates
+  config.vm.provision "shell", 
+    inline: <<-SHELL
+      yum update -q
+      yum install -y -q wget
+      wget dl.fedoraproject.org/pub/epel/7/x86_64/Packages/e/epel-release-7-11.noarch.rpm
+      rpm -ihv epel-release-7-11.noarch.rpm
+      rm -rf epel-release-7-11.noarch.rpm
+      yum-config-manager --add-repo https://download.docker.com/linux/centos/docker-ce.repo
+      yum update -q
+      yum install -y -q htop yum-utils device-mapper-persistent-data lvm2 docker-ce
+      yum upgrade -y -q
+      yum clean all
+      rm -rf /var/cache/yum
+      cd /synced
+      docker load < gitlab.tar
+      docker run --detach --hostname gitlab.blasto.io --publish 443:443 --publish 80:80 --publish 2022:22 --name gitlab --restart always --volume /srv/gitlab/config:/etc/gitlab --volume /srv/gitlab/logs:/var/log/gitlab --volume /srv/gitlab/data:/var/opt/gitlab blasto/gitlab
+  SHELL
+end
