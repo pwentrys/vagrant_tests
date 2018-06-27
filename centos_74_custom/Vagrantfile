@@ -1,0 +1,57 @@
+# -*- mode: ruby -*-
+# vi: set ft=ruby :
+require 'etc'
+
+# Force UTF-8
+ENV["LC_ALL"] = "en_US.UTF-8"
+
+Vagrant.configure("2") do |config|
+  # How many to create.
+  cpus_desired = 19
+
+  # Ensure we don't try to create more instances than we have processors.
+  cpus_available = Etc.nprocessors
+
+  if cpus_desired < 1 || cpus_available < cpus_desired
+    cpus_desired = cpus_available
+  end
+
+  # Beginning ip for quartet.
+  quartet_start = 200
+
+  # Ensure we don't go over 255 on the quartet.
+  if quartet_start + cpus_desired > 255
+    quartet_start = 200 - ((quartet_start + cpus_desired) - 255)
+  end
+
+  config.vm.box = 'centos74_updated__20180620'
+  (1..cpus_desired).each do |i|
+    config.vm.define "node-#{i}" do |node|
+      node_name = "node#{i}"
+
+      # Create IP address, starting at 200.
+      quartet_last = quartet_start + i
+      quartet_full_public = "192.168.0.#{quartet_last}"
+      config.vm.hostname = node_name
+      node.vm.hostname = node_name
+
+      node.vm.provider "virtualbox" do |vb|
+        vb.cpus = 1
+        #memory_val = "#{i}".to_i * 1024
+        #vb.memory = memory_val.to_s
+        vb.memory = 4096
+
+        vb.name = node_name
+        vb.gui = false
+      end
+
+      #node.vm.network "private_network", ip: quartet_full_private
+      node.vm.network "public_network", ip: quartet_full_public
+
+      node.vm.provision "shell",
+        inline: "echo Box #{i} is Online."
+      node.vm.provision "shell",
+        inline: "ip addr show enp0s8"
+    end
+  end
+end
