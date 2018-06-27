@@ -1,0 +1,48 @@
+# -*- mode: ruby -*-
+# vi: set ft=ruby :
+
+# Force UTF-8
+ENV["LC_ALL"] = "en_US.UTF-8"
+
+# All Vagrant configuration is done below. The "2" in Vagrant.configure
+# configures the configuration version (we support older styles for
+# backwards compatibility). Please don't change it unless you know what
+# you're doing.
+Vagrant.configure("2") do |config|
+  # Official CentOS 7.4 Image
+  config.vm.box = "CentosBox/Centos-7-v7.4-Minimal-CLI"
+  config.vm.box_version = "17.11.24"
+
+  box_name = "centos74-docker"
+  # Fixes error when booting from this as base image.
+  config.ssh.insert_key = false
+
+  # Auto-set hostname
+  config.vm.hostname = box_name
+  
+  # Set static IP for now.
+  config.vm.provider "virtualbox" do |vb|
+    vb.name =  box_name
+    vb.gui = false
+
+    vb.cpus = 4
+    vb.memory = 4096
+  end
+
+  # Run updates
+  config.vm.provision "shell", 
+    inline: <<-SHELL
+      yum update -q
+      yum install -y -q wget
+      wget dl.fedoraproject.org/pub/epel/7/x86_64/Packages/e/epel-release-7-11.noarch.rpm
+      rpm -ihv epel-release-7-11.noarch.rpm
+      rm -rf epel-release-7-11.noarch.rpm
+      yum-config-manager --add-repo https://download.docker.com/linux/centos/docker-ce.repo
+      yum update -q
+      yum install -y -q htop yum-utils device-mapper-persistent-data lvm2 docker-ce
+      yum update -q
+      yum upgrade -y -q 
+      yum clean all
+      rm -rf /var/cache/yum
+  SHELL
+end
