@@ -1,0 +1,84 @@
+# -*- mode: ruby -*-
+# vi: set ft=ruby :
+
+# All Vagrant configuration is done below. The "2" in Vagrant.configure
+# configures the configuration version (we support older styles for
+# backwards compatibility). Please don't change it unless you know what
+# you're doing.
+Vagrant.configure("2") do |config|
+  # Official CentOS 7.4 Image
+  config.vm.box = "CentosBox/Centos-7-v7.4-Minimal-CLI"
+  config.vm.box_version = "17.11.24"
+
+  # Auto-set hostname
+  node_name = 'centos74-docker-flask'
+  config.vm.hostname = node_name
+
+  # Networking info
+  config.vm.network "public_network", ip: "192.168.0.170"
+  config.vm.network "private_network", ip: "10.0.0.2"
+  config.vm.network "forwarded_port", guest: 22, host: 2222, host_ip: "127.0.0.1", id: "ssh"
+  
+  # Fixes error when booting from this as base image.
+  config.ssh.insert_key = false
+  config.ssh.private_key_path = ["../keys/private/id_rsa", "~/.vagrant.d/insecure_private_key"]
+  config.vm.provision "file", source: "../keys/public/id_rsa.pub", destination: "~/.ssh/authorized_keys"
+
+  config.vm.synced_folder "../data/docker_images/Flask_Full", "/synced"
+
+  config.vm.provider "virtualbox" do |vb|
+    vb.cpus = 4
+    vb.memory = 8192
+
+    vb.name = node_name
+    vb.gui = false
+  end
+  config.vm.provision "shell",
+    inline: "echo Box #{node_name} is Online."
+
+  Install base
+  config.vm.provision "shell",
+    inline: <<-SHELL
+      yum -y install wget
+      wget dl.fedoraproject.org/pub/epel/7/x86_64/Packages/e/epel-release-7-11.noarch.rpm
+      rpm -ihv epel-release-7-11.noarch.rpm
+      rm -rf epel-release-7-11.noarch.rpm
+      yum -q update
+      yum -y -q install htop
+      yum -y upgrade
+      yum -q clean all
+      rm -rf /var/cache/yum
+      yum -y install yum-utils device-mapper-persistent-data lvm2
+  SHELL
+
+  # Install docker.
+  config.vm.provision "shell",
+    inline: <<-SHELL
+      echo Adding Docker Repo
+      yum-config-manager --add-repo https://download.docker.com/linux/centos/docker-ce.repo
+      yum update
+      echo Installing Docker
+      yum -y install docker-ce
+      echo Installed Docker
+      echo Starting Docker
+      systemctl start docker
+      echo Started Docker
+      echo Cleaning Cache
+      yum clean all
+      rm -rf /var/cache/yum
+      echo Cleaned Cache
+  SHELL
+
+  # Install docker image for flask.
+  config.vm.provision "shell",
+    inline: <<-SHELL
+      cd /synced
+      echo Starting Docker Build
+      docker build -t flask:latest .
+      echo Finished Docker Build
+      echo Starting Docker Container
+      docker run -d -p 80:80 flask
+      echo Started Docker Container
+      echo Finished All Tasks
+  SHELL
+end
